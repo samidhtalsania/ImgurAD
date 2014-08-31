@@ -1,0 +1,41 @@
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:paddingBottom="@dimen/activity_vertical_margin"
+    android:paddingLeft="@dimen/activity_horizontal_margin"
+    android:paddingRight="@dimen/activity_horizontal_margin"
+    android:paddingTop="@dimen/activity_vertical_margin"
+    android:background="@color/white"
+    tools:context=".MainActivity" >
+
+    <Button
+        android:id="@+id/submitButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignLeft="@+id/httpAddress"
+        android:layout_alignParentTop="true"
+        android:layout_marginTop="178dp"
+        android:ems="10"
+        android:onClick="onClick"
+        android:padding="15dp"
+        android:textColor="@drawable/submit_button_text"
+        android:textStyle="bold"
+        
+        android:background="@drawable/button_state"
+        android:text="@string/download" />
+
+    <EditText
+        android:id="@+id/httpAddress"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignBottom="@+id/submitButton"
+        android:layout_centerHorizontal="true"
+        android:layout_marginBottom="80dp"
+        android:background="@drawable/http_address"
+        android:ems="10"
+        android:hint="@string/address_bar_hint"
+        android:inputType="textUri"
+        android:padding="15dp" />
+
+</RelativeLayout>

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="red">#ee1111</color>
+    <color name="blue">#2d89ef</color>
+    <color name="light_blue">#eff4ff</color>
+    <color name="white">#FFFFFF</color>
+    
+    <!-- imgur theme -->
+    <color name="black">#2b2b2b</color>
+    <color name="green">#77ac21</color>
+</resources>
