@@ -1,0 +1,10 @@
+# view AndroidManifest.xml #generated:18
+-keep class com.blueleaf.imguralbumdownloader.MainActivity { <init>(...); }
+
+# view AndroidManifest.xml #generated:58
+-keep class com.blueleaf.imguralbumdownloader.downloadIntentService { <init>(...); }
+
+# onClick res/layout/activity_main.xml #generated:12
+# onClick res/layout/activity_main.xml #generated:41
+-keepclassmembers class * { *** onClick(...); }
+
