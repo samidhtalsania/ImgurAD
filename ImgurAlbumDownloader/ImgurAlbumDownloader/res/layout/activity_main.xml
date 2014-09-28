@@ -38,4 +38,19 @@
         android:inputType="textUri"
         android:padding="15dp" />
 
+    <Button
+        android:id="@+id/viewButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignLeft="@+id/httpAddress"
+        android:layout_below="@+id/httpAddress"
+        android:layout_marginTop="20dp"
+        android:background="@drawable/button_state"
+        android:ems="10"
+        android:onClick="onClick"
+        android:padding="15dp"
+        android:text="@string/view"
+        android:textColor="@drawable/submit_button_text"
+        android:textStyle="bold" />
+
 </RelativeLayout>

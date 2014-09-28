@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.example.imguralbumdownloader"
+    package="com.blueleaf.imguralbumdownloader"
     android:versionCode="1"
     android:versionName="1.0" >
 
     <uses-sdk
-        android:minSdkVersion="14"
+        android:minSdkVersion="9"
         android:targetSdkVersion="19" />
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
@@ -16,20 +16,46 @@
         android:label="@string/app_name"
         android:theme="@style/CustomActionBarTheme" >
         <activity
-            android:name="com.example.imguralbumdownloader.MainActivity"
+            android:name="com.blueleaf.imguralbumdownloader.MainActivity"
             android:label="@string/app_name" >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-        </activity>
-        <activity
-            android:name="com.example.imguralbumdownloader.SettingsActivity"
-            android:label="@string/action_settings">
+            
+            <intent-filter >
+                <action android:name="android.intent.action.VIEW" />
+	            <category android:name="android.intent.category.DEFAULT" />
+	            <category android:name="android.intent.category.BROWSABLE" />
+	            
+	            <data android:scheme="http"
+	                  android:host="imgur.com"
+	                  android:pathPrefix="/a/"
+	                  />
+	            <data android:scheme="http"
+	                  android:host="imgur.com"
+	                  android:pathPrefix="/a/"
+	                  />
+            </intent-filter>
+            <intent-filter >
+                <action android:name="android.intent.action.VIEW" />
+	            <category android:name="android.intent.category.DEFAULT" />
+	            <category android:name="android.intent.category.BROWSABLE" />
+	            
+	            <data android:scheme="http"
+	                  android:host="m.imgur.com"
+	                  android:pathPrefix="/a/"
+	                  />
+	            <data android:scheme="http"
+	                  android:host="m.imgur.com"
+	                  android:pathPrefix="/a/"
+	                  />
+            </intent-filter>
         </activity>
         
-        <service android:name="com.example.imguralbumdownloader.downloadIntentService" >
+        
+        <service android:name="com.blueleaf.imguralbumdownloader.downloadIntentService" >
         </service>
     </application>
 

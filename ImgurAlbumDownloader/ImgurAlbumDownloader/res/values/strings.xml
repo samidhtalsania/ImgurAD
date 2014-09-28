@@ -8,5 +8,8 @@
 	
 	<string name="address_bar_hint">Enter Imgur album link here</string>
 	<string name="download">Download!</string>
+	
+	<string name="view">View Album</string>
 
 </resources>
+ 
