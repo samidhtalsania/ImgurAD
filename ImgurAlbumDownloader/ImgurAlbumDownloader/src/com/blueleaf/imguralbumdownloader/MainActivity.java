@@ -1,6 +1,5 @@
 package com.blueleaf.imguralbumdownloader;
 
-import java.io.File;
 import java.net.UnknownHostException;
 
 import org.apache.http.HttpResponse;
@@ -20,7 +19,7 @@ import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Environment;
-import android.app.Activity;
+import android.preference.PreferenceManager;
 import android.app.DownloadManager;
 import android.app.DownloadManager.Query;
 import android.app.DownloadManager.Request;
@@ -28,36 +27,29 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.graphics.drawable.GradientDrawable;
+import android.support.v7.app.ActionBarActivity;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.RelativeLayout;
 import android.widget.Toast;
+import android.graphics.Color;
 
-public class MainActivity extends Activity  {
-	
-//	private MediaScannerConnection conn;
+public class MainActivity extends ActionBarActivity  {
 	
 	private static final String MIME = "image/*";
-	
-	public static final String NOTIFICATION = "com.example.imguralbundownloader";
-	public static final String RESULT = "result";
-	
-	public static final String PATH = "path";
-
-	
-	
+	private String downloadLocation ;
 	private String path ;
-	
-	private static String album = "album" ;
-	
 	private String result = DownloadManager.ACTION_DOWNLOAD_COMPLETE;
 	
 	private String links[];
-	
 	private String names[];
 	
 	DownloadManager manager ;
@@ -67,19 +59,34 @@ public class MainActivity extends Activity  {
 	//	error codes
 	public static final String NO_INTERNET = "NO_INTERNET";
 	public static final String NO_ALBUM = "NO_ALBUM";
-//	public static final String NO_ALBUM = "NO_ALBUM";
-
 	public static final int ERROR = 404 ;
-
 	public static final int SUCCESS = 200 ;
 	
+	//Constants
+	private static final String DEFAULT_LOCATION = Environment.DIRECTORY_DOWNLOADS;
+	private static final String KEY = "dloc";
+	private static String album = "album" ;
+	public static final String RESULT = "result";
+	public static final String PATH = "path";
+	public static final String NOTIFICATION = "com.example.imguralbundownloader";
 	
+	private static ProgressWheel wheel ;
+	RelativeLayout topLevelLayout ;
+	private View view;
 	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
+		enqueue = 0 ;
+		setContentView(R.layout.activity_main_working);
+		wheel = (ProgressWheel) findViewById(R.id.progress_wheel);
+		wheel.setBarColor(Color.BLUE);
 		
-		setContentView(R.layout.activity_main);
+		view = findViewById(R.id.top_layout);
+		topLevelLayout = (RelativeLayout) view.findViewById(R.id.top_layout);
+		topLevelLayout.setVisibility(View.GONE);
+//		
+		getSupportActionBar().show();
 		
 		registerReceiver(receiver, new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE));
 		
@@ -123,10 +130,23 @@ public class MainActivity extends Activity  {
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
 		// Inflate the menu; this adds items to the action bar if it is present.
-		getMenuInflater().inflate(R.menu.main, menu);
-		return false;
+		getMenuInflater().inflate(R.menu.main_activity_actions, menu);
+		return super.onCreateOptionsMenu(menu);
 	}
 	
+	@Override
+	public boolean onOptionsItemSelected(MenuItem item){
+		switch (item.getItemId()){
+			case R.id.action_settings:
+				Intent i = new Intent(this,settingsActivity.class);
+				startActivity(i);
+				break ;	
+			 default:
+		        break;
+		}
+		return true ;
+	}
+
 	public void onClick(View view)
 	{
 		EditText input = (EditText) findViewById(R.id.httpAddress);
@@ -134,7 +154,8 @@ public class MainActivity extends Activity  {
 		Button submitBtn = (Button) findViewById(R.id.submitButton);
 		if(str.length() != 0 && str.contains("imgur"))
 		{
-			path = "path";
+//			path = "path";
+			
 			Toast.makeText(this, "Downloading from "+str,Toast.LENGTH_LONG).show();
 			GradientDrawable gradientDrawable = (GradientDrawable) input.getBackground();
 			gradientDrawable.setStroke(3, getResources().getColor(R.color.black));
@@ -160,13 +181,11 @@ public class MainActivity extends Activity  {
 	private void startDownload(String str) {			
 			
 //			registerReceiver(onComplete,new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE));
-			new HttpAsyncTask().execute(str);
+			new HttpAsyncTask(this).execute(str);
 			
 			
 	}
 		
-	
-	
 	private String parseURI(String URI) {
 		String temp = "https://api.imgur.com/3/album/";
 		album = URI.substring(URI.lastIndexOf('/')+1);
@@ -175,7 +194,7 @@ public class MainActivity extends Activity  {
 	}
 
 	private BroadcastReceiver receiver = new BroadcastReceiver() {
-
+			
 		@Override
 	    public void onReceive(Context context, Intent intent) {
 
@@ -189,6 +208,8 @@ public class MainActivity extends Activity  {
             	  int columnIndex = c.getColumnIndex(DownloadManager.COLUMN_STATUS);
             	  if (DownloadManager.STATUS_SUCCESSFUL == c.getInt(columnIndex) && enqueue == downloadId) {
             		    reEnableInputs();
+            		    wheel.stopSpinning();
+            		    topLevelLayout.setVisibility(View.INVISIBLE);
 	      		        Toast.makeText(MainActivity.this, "Downloading Finished.",Toast.LENGTH_LONG).show();
             	  }
               }
@@ -197,6 +218,8 @@ public class MainActivity extends Activity  {
 	      }
 		  else {
 			  reEnableInputs();
+			  wheel.stopSpinning();
+			  topLevelLayout.setVisibility(View.INVISIBLE);
 			  Toast.makeText(MainActivity.this, "Download failed.Please try again",
 		              Toast.LENGTH_LONG).show();
 		          
@@ -208,6 +231,28 @@ public class MainActivity extends Activity  {
     protected void onResume() {
 	    super.onResume();
 	    registerReceiver(receiver, new IntentFilter(result));
+	    if(enqueue != 0)
+	    {
+	    	Query q = new Query();
+	    	q.setFilterById(enqueue);
+	    	DownloadManager dm = (DownloadManager) this.getSystemService(Context.DOWNLOAD_SERVICE);
+			Cursor c = dm.query(q);
+	    	int downloadSatus = c.getColumnIndex(DownloadManager.COLUMN_STATUS);
+	    	while(c.moveToNext())
+	    	{
+	    		if(c.getInt(downloadSatus) == DownloadManager.STATUS_SUCCESSFUL)
+	    		{
+	    			if(wheel.isSpinning())
+	    			{
+	    				wheel.stopSpinning();
+	    				
+	    			}
+	    			reEnableInputs();
+	    			topLevelLayout.setVisibility(View.INVISIBLE);
+	    		}
+	    		
+	    	}
+	    }
 	}
   
     @Override
@@ -216,8 +261,6 @@ public class MainActivity extends Activity  {
 	    unregisterReceiver(receiver);
 	  }
 	  
-
-    
     private void scanFile(String path) {
 
         MediaScannerConnection.scanFile(MainActivity.this,
@@ -232,14 +275,19 @@ public class MainActivity extends Activity  {
                 });
     }
     
-    	
-	
-	private class HttpAsyncTask extends AsyncTask<String, Void, Void>{
+    private class HttpAsyncTask extends AsyncTask<String, Void, Void>{
 		
 		String error ;
+		Context mContext ;
 		
-		public HttpAsyncTask(){
-			
+		public HttpAsyncTask(Context mContext){
+			this.mContext = mContext ;
+		}
+		@Override
+		protected void onPreExecute ()
+		{
+			topLevelLayout.setVisibility(View.VISIBLE);
+			wheel.spin();	
 		}
 
 		@Override
@@ -302,9 +350,9 @@ public class MainActivity extends Activity  {
 				        
 				        
 //				        String album = DOWNLOAD_URI.substring(DOWNLOAD_URI.lastIndexOf('/')+1);
-				        File dirPath = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/"+album);
-				       
-						Log.d("dir", "directory created at "+dirPath);
+//				        File dirPath = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/"+album);
+//				       
+//						Log.d("dir", "directory created at "+dirPath);
 
 			        }
 			        
@@ -318,7 +366,6 @@ public class MainActivity extends Activity  {
 			
 				ex.printStackTrace();
 				error = NO_INTERNET ;
-//				publishResults(result,path);
 			}
 			catch(Exception ex){
 				ex.printStackTrace();
@@ -328,9 +375,6 @@ public class MainActivity extends Activity  {
 		
 		@Override
 		protected void onPostExecute(Void v){
-//			if(error){
-//				Toast.makeText(getApplicationContext(), "No album found", Toast.LENGTH_LONG).show();
-//			}
 			if(error == NO_INTERNET){
 				Toast.makeText(getApplicationContext(), "Please connect to Internet and try again", Toast.LENGTH_LONG).show();
 				reEnableInputs();
@@ -340,27 +384,28 @@ public class MainActivity extends Activity  {
 				reEnableInputs();
 			}
 			else{
-		
+				
 				Uri myUri ;
 				Request request ;
-				String downloadsDir = Environment.DIRECTORY_DOWNLOADS;
-				String pubDir = downloadsDir+"/"+album ; 
+				SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
+				downloadLocation = sharedPref.getString(KEY,DEFAULT_LOCATION);
+				String pubDir = downloadLocation+"/"+album ;
+				String formatStr = Environment.getExternalStorageDirectory().getAbsolutePath() ;
+				pubDir = pubDir.replace(formatStr, "");
 				manager = (DownloadManager) getSystemService(Context.DOWNLOAD_SERVICE);
-				
+				Log.d("loc",pubDir);
 				
 				for(int i=0;i<links.length;i++)
 		        {
 		        	myUri = Uri.parse(links[i]);
 		        	request = new Request(myUri);
+		        	path = names[i] + ".jpg";
 		        	request.setTitle(names[i]);
 		        	request.setDestinationInExternalPublicDir(pubDir,names[i]+".jpg");
-		        	path = album + "/" +names[i] + ".jpg";
 		        	enqueue = manager.enqueue(request);
-		        	
 		        }
-				
 			}
-
+			
 		}
 	}
 	

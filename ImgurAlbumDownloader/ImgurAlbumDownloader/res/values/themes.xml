@@ -1,13 +1,35 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <!-- the theme applied to the application or activity -->
+    <style name="CustomActionBarTheme"
+           parent="@style/Theme.AppCompat.Light.DarkActionBar">
+           
+        <item name="android:actionBarStyle" tools:targetApi="11">@style/MyActionBar</item>
+
+        <!-- Support library compatibility -->
+        <item name="actionBarStyle">@style/MyActionBar</item>
+    </style>
+
+    <!-- ActionBar styles -->
+    <style name="MyActionBar"
+           parent="@style/Widget.AppCompat.Light.ActionBar.Solid.Inverse">
+        <item name="android:background">@color/blue</item>
+
+        <!-- Support library compatibility -->
+        <item name="background">@color/blue</item>
+    </style>
+</resources>
+<!--  
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    
     <style name="CustomActionBarTheme"
            parent="@android:style/Theme.Holo.Light.DarkActionBar">
         <item name="android:actionBarStyle">@style/MyActionBar</item>
 
     </style>
 
-    <!-- ActionBar styles -->
+    
     <style name="MyActionBar"
         parent="@android:style/Widget.Holo.Light.ActionBar.Solid.Inverse">
         <item name="android:background">@color/blue</item>
@@ -16,3 +38,4 @@
 
     
 </resources>
+-->

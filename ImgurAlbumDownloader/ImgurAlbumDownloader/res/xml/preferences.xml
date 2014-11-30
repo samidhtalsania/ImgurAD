@@ -1,11 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
-<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android" >
-    <ListPreference
-        android:title="Download Location"
-        android:summary="@string/download_dir"
-        android:key="dloc"
-        android:selectable="true"/>
-    
-    
-
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android" 
+    android:title="Settings">
+     <Preference 
+         android:title="Download Location"
+          android:persistent="true"
+         android:key="dloc"/>
 </PreferenceScreen>

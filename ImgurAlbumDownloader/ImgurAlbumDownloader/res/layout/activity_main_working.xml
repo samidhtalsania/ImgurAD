@@ -1,0 +1,112 @@
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    xmlns:wheel="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+	android:layout_height="match_parent"
+    android:id="@+id/main_layout">
+    
+    <RelativeLayout 
+	    android:layout_width="match_parent"
+	    android:layout_height="match_parent"
+	    android:paddingBottom="@dimen/activity_vertical_margin"
+	    android:paddingLeft="@dimen/activity_horizontal_margin"
+	    android:paddingRight="@dimen/activity_horizontal_margin"
+	    android:paddingTop="@dimen/activity_vertical_margin"
+	    android:background="@color/white"
+	    android:gravity="top"
+	    tools:context=".MainActivity"
+	    android:id="@+id/main_view" >	
+	    
+	    <Button
+	        android:id="@+id/submitButton"
+	        android:layout_width="match_parent"
+	        android:layout_height="wrap_content"
+	        android:layout_alignLeft="@+id/httpAddress"
+	        android:layout_alignParentTop="true"
+	        android:layout_marginTop="178dp"
+	        android:ems="10"
+	        android:onClick="onClick"
+	        android:padding="15dp"
+	        android:textColor="@drawable/submit_button_text"
+	        android:textStyle="bold"
+	        android:background="@drawable/button_state"
+	        android:text="@string/download" />
+	
+	    <EditText
+	        android:id="@+id/httpAddress"
+	        android:layout_width="match_parent"
+	        android:layout_height="wrap_content"
+	        android:layout_alignBottom="@+id/submitButton"
+	        android:layout_centerHorizontal="true"
+	        android:layout_marginBottom="80dp"
+	        android:background="@drawable/http_address"
+	        android:ems="10"
+	        android:hint="@string/address_bar_hint"
+	        android:inputType="textUri"
+	        android:padding="15dp" />
+	
+	    <Button
+	        android:id="@+id/viewButton"
+	        android:layout_width="match_parent"
+	        android:layout_height="wrap_content"
+	        android:layout_alignLeft="@+id/httpAddress"
+	        android:layout_below="@+id/httpAddress"
+	        android:layout_marginTop="20dp"
+	        android:background="@drawable/button_state"
+	        android:ems="10"
+	        android:onClick="onClick"
+	        android:padding="15dp"
+	        android:text="@string/view"
+	        android:textColor="@drawable/submit_button_text"
+	        android:textStyle="bold" />
+	    	
+    	
+        
+	    
+	    
+	</RelativeLayout>
+ 	
+	<RelativeLayout
+	    android:gravity="bottom"
+	    android:layout_width="match_parent"
+	    android:layout_height="match_parent"
+	    android:paddingBottom="@dimen/activity_vertical_margin"
+	    android:paddingLeft="@dimen/activity_horizontal_margin"
+	    android:paddingRight="@dimen/activity_horizontal_margin"
+	    android:paddingTop="@dimen/activity_vertical_margin"
+	    
+	    android:id="@+id/top_layout">
+	    
+	    <RelativeLayout 
+	        android:layout_width="150dp"
+	    	android:layout_height="150dp"
+	    	
+	    	android:layout_centerInParent="true"
+	    	android:id="@+id/inner_box">
+	    
+	        <com.blueleaf.imguralbumdownloader.ProgressWheel
+		        android:id="@+id/progress_wheel"
+		        android:layout_width="80dp"
+		        android:layout_height="80dp"
+		        android:layout_centerHorizontal="true"
+		        wheel:barColor="#5588FF" 
+		        wheel:circleRadius="5dp"
+		        wheel:fillRadius="true" />
+	        
+	        <TextView 
+	            android:text="Downloading..."
+	            android:layout_width="wrap_content"
+	            android:layout_height="wrap_content"
+	            android:layout_alignParentBottom="true"
+	            android:layout_centerHorizontal="true"
+	            android:textColor="@color/blue"
+	            android:textStyle="bold"
+	            android:textSize="20sp"/>
+	    	
+			    
+	    </RelativeLayout>
+	    
+	</RelativeLayout>
+	
+ 
+</FrameLayout>

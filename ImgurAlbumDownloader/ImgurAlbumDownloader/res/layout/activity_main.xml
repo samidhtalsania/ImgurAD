@@ -1,4 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:wheel="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -7,50 +9,63 @@
     android:paddingRight="@dimen/activity_horizontal_margin"
     android:paddingTop="@dimen/activity_vertical_margin"
     android:background="@color/white"
-    tools:context=".MainActivity" >
-
-    <Button
-        android:id="@+id/submitButton"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_alignLeft="@+id/httpAddress"
-        android:layout_alignParentTop="true"
-        android:layout_marginTop="178dp"
-        android:ems="10"
-        android:onClick="onClick"
-        android:padding="15dp"
-        android:textColor="@drawable/submit_button_text"
-        android:textStyle="bold"
+    tools:context=".MainActivity"
+    android:id="@+id/main_view" >
+	
+	    
+	    <Button
+	        android:id="@+id/submitButton"
+	        android:layout_width="match_parent"
+	        android:layout_height="wrap_content"
+	        android:layout_alignLeft="@+id/httpAddress"
+	        android:layout_alignParentTop="true"
+	        android:layout_marginTop="178dp"
+	        android:ems="10"
+	        android:onClick="onClick"
+	        android:padding="15dp"
+	        android:textColor="@drawable/submit_button_text"
+	        android:textStyle="bold"
+	        android:background="@drawable/button_state"
+	        android:text="@string/download" />
+	
+	    <EditText
+	        android:id="@+id/httpAddress"
+	        android:layout_width="match_parent"
+	        android:layout_height="wrap_content"
+	        android:layout_alignBottom="@+id/submitButton"
+	        android:layout_centerHorizontal="true"
+	        android:layout_marginBottom="80dp"
+	        android:background="@drawable/http_address"
+	        android:ems="10"
+	        android:hint="@string/address_bar_hint"
+	        android:inputType="textUri"
+	        android:padding="15dp" />
+	
+	    <Button
+	        android:id="@+id/viewButton"
+	        android:layout_width="match_parent"
+	        android:layout_height="wrap_content"
+	        android:layout_alignLeft="@+id/httpAddress"
+	        android:layout_below="@+id/httpAddress"
+	        android:layout_marginTop="20dp"
+	        android:background="@drawable/button_state"
+	        android:ems="10"
+	        android:onClick="onClick"
+	        android:padding="15dp"
+	        android:text="@string/view"
+	        android:textColor="@drawable/submit_button_text"
+	        android:textStyle="bold" />
+	    	
+    	<com.blueleaf.imguralbumdownloader.ProgressWheel
+	        android:id="@+id/progress_wheel"
+	        android:layout_below="@+id/viewButton"
+	        android:layout_width="80dp"
+	        android:layout_height="80dp"
+	        android:layout_centerHorizontal="true"
+	        android:layout_marginTop="15dp"
+	        wheel:barColor="#5588FF" 
+	        wheel:circleRadius="10dp"/>
         
-        android:background="@drawable/button_state"
-        android:text="@string/download" />
-
-    <EditText
-        android:id="@+id/httpAddress"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_alignBottom="@+id/submitButton"
-        android:layout_centerHorizontal="true"
-        android:layout_marginBottom="80dp"
-        android:background="@drawable/http_address"
-        android:ems="10"
-        android:hint="@string/address_bar_hint"
-        android:inputType="textUri"
-        android:padding="15dp" />
-
-    <Button
-        android:id="@+id/viewButton"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_alignLeft="@+id/httpAddress"
-        android:layout_below="@+id/httpAddress"
-        android:layout_marginTop="20dp"
-        android:background="@drawable/button_state"
-        android:ems="10"
-        android:onClick="onClick"
-        android:padding="15dp"
-        android:text="@string/view"
-        android:textColor="@drawable/submit_button_text"
-        android:textStyle="bold" />
-
+	    
+	    
 </RelativeLayout>
