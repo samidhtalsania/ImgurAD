@@ -52,15 +52,14 @@
 # view AndroidManifest.xml #generated:18
 -keep class com.blueleaf.imguralbumdownloader.MainActivity { <init>(...); }
 
-# view res/layout/activity_main.xml #generated:59
-# view res/layout/activity_main_working.xml #generated:87
--keep class com.blueleaf.imguralbumdownloader.ProgressWheel { <init>(...); }
-
 # view AndroidManifest.xml #generated:69
 -keep class com.blueleaf.imguralbumdownloader.downloadIntentService { <init>(...); }
 
 # view AndroidManifest.xml #generated:56
 -keep class com.blueleaf.imguralbumdownloader.settingsActivity { <init>(...); }
+
+# view res/layout/activity_main_working.xml #generated:87
+-keep class com.todddavies.components.progressbar.ProgressWheel { <init>(...); }
 
 # onClick res/layout/activity_main.xml #generated:16
 # onClick res/layout/activity_main.xml #generated:44

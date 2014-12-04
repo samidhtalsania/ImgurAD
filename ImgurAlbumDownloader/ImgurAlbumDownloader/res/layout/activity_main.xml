@@ -55,7 +55,7 @@
 	        android:text="@string/view"
 	        android:textColor="@drawable/submit_button_text"
 	        android:textStyle="bold" />
-	    	
+	    	<!-- 
     	<com.blueleaf.imguralbumdownloader.ProgressWheel
 	        android:id="@+id/progress_wheel"
 	        android:layout_below="@+id/viewButton"
@@ -65,7 +65,7 @@
 	        android:layout_marginTop="15dp"
 	        wheel:barColor="#5588FF" 
 	        wheel:circleRadius="10dp"/>
-        
+         -->
 	    
 	    
 </RelativeLayout>

@@ -3,6 +3,14 @@
     android:title="Settings">
      <Preference 
          android:title="Download Location"
-          android:persistent="true"
+         android:persistent="true"
          android:key="dloc"/>
+     
+      
+     <CheckBoxPreference
+         android:title="Download over wifi only"
+         android:key="network_pref"
+         android:enabled="true"
+         />
+         
 </PreferenceScreen>

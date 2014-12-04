@@ -19,6 +19,7 @@ import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.Handler;
 import android.preference.PreferenceManager;
 import android.app.DownloadManager;
 import android.app.DownloadManager.Query;
@@ -39,8 +40,11 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.RelativeLayout;
+import android.widget.TextView;
 import android.widget.Toast;
 import android.graphics.Color;
+
+import com.todddavies.components.progressbar.*;
 
 public class MainActivity extends ActionBarActivity  {
 	
@@ -51,6 +55,7 @@ public class MainActivity extends ActionBarActivity  {
 	
 	private String links[];
 	private String names[];
+	private long ids[];
 	
 	DownloadManager manager ;
 	
@@ -64,7 +69,8 @@ public class MainActivity extends ActionBarActivity  {
 	
 	//Constants
 	private static final String DEFAULT_LOCATION = Environment.DIRECTORY_DOWNLOADS;
-	private static final String KEY = "dloc";
+	private static final String DLOC = "dloc";
+	private static final String NETWORK_PREF = "network_pref";
 	private static String album = "album" ;
 	public static final String RESULT = "result";
 	public static final String PATH = "path";
@@ -74,18 +80,32 @@ public class MainActivity extends ActionBarActivity  {
 	RelativeLayout topLevelLayout ;
 	private View view;
 	
+	//Variables for showing sownload progress
+	private int mInterval = 10; // 5 seconds by default, can be changed later
+	private Handler mHandler;
+	
+	
+	long totalSizeOfAllImages ;
+	
+	private Query q;
+	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		enqueue = 0 ;
+		q = new Query();
 		setContentView(R.layout.activity_main_working);
-		wheel = (ProgressWheel) findViewById(R.id.progress_wheel);
+		wheel = (ProgressWheel) findViewById(R.id.pw_spinner);
+		
 		wheel.setBarColor(Color.BLUE);
 		
 		view = findViewById(R.id.top_layout);
 		topLevelLayout = (RelativeLayout) view.findViewById(R.id.top_layout);
 		topLevelLayout.setVisibility(View.GONE);
-//		
+		
+		//initialize the download manager object
+		manager = (DownloadManager) getSystemService(Context.DOWNLOAD_SERVICE);
+		
 		getSupportActionBar().show();
 		
 		registerReceiver(receiver, new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE));
@@ -123,10 +143,12 @@ public class MainActivity extends ActionBarActivity  {
 			ex.printStackTrace();
 		}
 		
-
-
+		mHandler = new Handler();
+		
 	}
 
+	
+	//Creates the menu
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
 		// Inflate the menu; this adds items to the action bar if it is present.
@@ -134,6 +156,8 @@ public class MainActivity extends ActionBarActivity  {
 		return super.onCreateOptionsMenu(menu);
 	}
 	
+	
+	//Menu selector
 	@Override
 	public boolean onOptionsItemSelected(MenuItem item){
 		switch (item.getItemId()){
@@ -147,6 +171,7 @@ public class MainActivity extends ActionBarActivity  {
 		return true ;
 	}
 
+	//OnClick method that starts the download
 	public void onClick(View view)
 	{
 		EditText input = (EditText) findViewById(R.id.httpAddress);
@@ -175,9 +200,8 @@ public class MainActivity extends ActionBarActivity  {
 		}
 	}
 	
-
-
-
+	
+	//Starts the async task that will further start the download
 	private void startDownload(String str) {			
 			
 //			registerReceiver(onComplete,new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE));
@@ -186,6 +210,8 @@ public class MainActivity extends ActionBarActivity  {
 			
 	}
 		
+	
+	//Formats the input string so that the API call can  be made
 	private String parseURI(String URI) {
 		String temp = "https://api.imgur.com/3/album/";
 		album = URI.substring(URI.lastIndexOf('/')+1);
@@ -193,6 +219,8 @@ public class MainActivity extends ActionBarActivity  {
 		return temp ;
 	}
 
+	
+	//Broadcast receiver that receives the intent when all downloads have finished.
 	private BroadcastReceiver receiver = new BroadcastReceiver() {
 			
 		@Override
@@ -207,6 +235,7 @@ public class MainActivity extends ActionBarActivity  {
             	  
             	  int columnIndex = c.getColumnIndex(DownloadManager.COLUMN_STATUS);
             	  if (DownloadManager.STATUS_SUCCESSFUL == c.getInt(columnIndex) && enqueue == downloadId) {
+            		  	stopProbingDownloads();
             		    reEnableInputs();
             		    wheel.stopSpinning();
             		    topLevelLayout.setVisibility(View.INVISIBLE);
@@ -226,10 +255,16 @@ public class MainActivity extends ActionBarActivity  {
 		  }
 		}
 	};
+	
+	//Activity Life Cycle method
+	//When the activity resumes it re registers the broadcast receiver
+	//When it resumes it also checks whether there are ongoing downloads. In case there are downloads going on it 
+	//keeps the progress wheel going on and keeps the inputs disabled. If the downloads have finished it re enables
+	//inputs and stops the spinning of the progress wheel.
 	  
 	@Override
     protected void onResume() {
-	    super.onResume();
+	    
 	    registerReceiver(receiver, new IntentFilter(result));
 	    if(enqueue != 0)
 	    {
@@ -253,14 +288,21 @@ public class MainActivity extends ActionBarActivity  {
 	    		
 	    	}
 	    }
+	    super.onResume();
 	}
   
+	
+	//Activity Life Cycle Method
+	//When the activity pauses(loses focus) it de registers the broadcast receiver
     @Override
     protected void onPause() {
-	    super.onPause();
+	    
 	    unregisterReceiver(receiver);
+	    super.onPause();
 	  }
-	  
+	
+    //Method that allows the OS to Scan Downloaded files.
+    //Enables the functionality of View Albums button
     private void scanFile(String path) {
 
         MediaScannerConnection.scanFile(MainActivity.this,
@@ -275,6 +317,10 @@ public class MainActivity extends ActionBarActivity  {
                 });
     }
     
+    
+    //Core Method
+    //First connects to Imgur API to get the links
+    //Once it gets the links it gives it to the down load manager for downloading
     private class HttpAsyncTask extends AsyncTask<String, Void, Void>{
 		
 		String error ;
@@ -294,14 +340,8 @@ public class MainActivity extends ActionBarActivity  {
 		protected Void doInBackground(String... params) {
 			
 			String DOWNLOAD_URI = params[0] ;
-			//DownloadManager downloadManager;
-			
-			
 			//use imgur api to start downloading 
 			try{
-				//use a test uri as of now
-				//DOWNLOAD_URI = "https://api.imgur.com/3/album/PVW92" ;
-				//DOWNLOAD_URI = "https://api.imgur.com/3/album/lDRB2.json";
 				//in the header add the client id
 				
 				DOWNLOAD_URI = parseURI(DOWNLOAD_URI) ;
@@ -338,25 +378,20 @@ public class MainActivity extends ActionBarActivity  {
 			        	JSONArray jsonArray = jsonObject.getJSONArray("images");
 				        links = new String[jsonArray.length()];
 				        names = new String[jsonArray.length()];
-				        
+				        ids = new long[jsonArray.length()];
+				        q.setFilterById(ids);
+				        totalSizeOfAllImages  = 0 ;
 				        for( int i=0;i<jsonArray.length();i++)
 				        {
 				        	JSONObject jsonTemp = jsonArray.getJSONObject(i);
 				        	names[i] = jsonTemp.getString("id");
 				        	links[i] = jsonTemp.getString("link");
+				        	totalSizeOfAllImages  += jsonTemp.getLong("size") ;
 				        	Log.d("link",links[i]);
 
 				        }
-				        
-				        
-//				        String album = DOWNLOAD_URI.substring(DOWNLOAD_URI.lastIndexOf('/')+1);
-//				        File dirPath = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/"+album);
-//				       
-//						Log.d("dir", "directory created at "+dirPath);
-
 			        }
-			        
-		        }
+			    }
 		        else{
 		        	error = NO_ALBUM ;
 		        }
@@ -378,22 +413,31 @@ public class MainActivity extends ActionBarActivity  {
 			if(error == NO_INTERNET){
 				Toast.makeText(getApplicationContext(), "Please connect to Internet and try again", Toast.LENGTH_LONG).show();
 				reEnableInputs();
+				topLevelLayout.setVisibility(View.INVISIBLE);
+				wheel.stopSpinning();
 			}
 			else if(error == NO_ALBUM){
 				Toast.makeText(getApplicationContext(), "No Album was found at that URL", Toast.LENGTH_LONG).show();
 				reEnableInputs();
+				topLevelLayout.setVisibility(View.INVISIBLE);
+				wheel.stopSpinning();
 			}
 			else{
 				
 				Uri myUri ;
 				Request request ;
 				SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
-				downloadLocation = sharedPref.getString(KEY,DEFAULT_LOCATION);
+				downloadLocation = sharedPref.getString(DLOC,DEFAULT_LOCATION);
 				String pubDir = downloadLocation+"/"+album ;
 				String formatStr = Environment.getExternalStorageDirectory().getAbsolutePath() ;
 				pubDir = pubDir.replace(formatStr, "");
-				manager = (DownloadManager) getSystemService(Context.DOWNLOAD_SERVICE);
+				
 				Log.d("loc",pubDir);
+				boolean OnlyWifi = false;
+				if(sharedPref.getBoolean(NETWORK_PREF, true))
+				{
+					OnlyWifi = true;
+				}
 				
 				for(int i=0;i<links.length;i++)
 		        {
@@ -402,13 +446,76 @@ public class MainActivity extends ActionBarActivity  {
 		        	path = names[i] + ".jpg";
 		        	request.setTitle(names[i]);
 		        	request.setDestinationInExternalPublicDir(pubDir,names[i]+".jpg");
+		        	request.setVisibleInDownloadsUi(false);
+		        	if(OnlyWifi)
+		        	{
+		        		request.setAllowedNetworkTypes(Request.NETWORK_WIFI);
+		        	}
+		        	else
+		        	{
+		        		request.setAllowedNetworkTypes(Request.NETWORK_WIFI | Request.NETWORK_MOBILE);
+		        	}
+		        	
 		        	enqueue = manager.enqueue(request);
+		        	ids[i] = enqueue;
 		        }
+				startProbingDownloads();
 			}
 			
 		}
 	}
 	
+    //The thread code which handles probing download manager to check  how much of the download has been finished
+    //The probe handles at an interval defined by mInterval variables
+    //Basically starts a new async thread (CalculateProgressAsyncTask) after every mInterval interval 
+    Runnable downloadStatusChecker = new Runnable(){
+    	@Override
+		public void run() {
+    		new CalculateProgressAsyncTask().execute();
+			mHandler.postDelayed(downloadStatusChecker, mInterval );
+		}
+    
+    } ;
+    
+    //Async task that handles probing downloads 
+    private class CalculateProgressAsyncTask extends AsyncTask<Void, Void, Long>{
+
+		@Override
+		protected Long doInBackground(Void... arg0) {
+			// TODO Auto-generated method stub
+			Cursor c = manager.query(q);
+			long bytesDownloaded = 0;
+			long progress = 0;
+			while(c.moveToNext())
+			{
+				int columnIndex = c.getColumnIndex(DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR);
+				bytesDownloaded += c.getLong(columnIndex);
+				
+				progress = bytesDownloaded*100/totalSizeOfAllImages;
+//				wheel.setText(String.valueOf(progress)+"%");
+			}
+			return progress;
+		}
+		
+		@Override
+		protected void onPostExecute(Long progress)
+		{
+			wheel.setText(String.valueOf(progress)+"%");
+		}
+    }
+    
+    
+    //This Method starts the thread that calculates the perentage downloads
+    void startProbingDownloads(){
+    	downloadStatusChecker.run();
+    }
+    
+    //This method stops the thread that  calculates the perentage downloads
+    void stopProbingDownloads(){
+    	mHandler.removeCallbacks(downloadStatusChecker);
+    }
+    
+    //ReEnables inputs 
 	private void reEnableInputs(){
 		EditText input = (EditText) findViewById(R.id.httpAddress);
 		input.setEnabled(true);
