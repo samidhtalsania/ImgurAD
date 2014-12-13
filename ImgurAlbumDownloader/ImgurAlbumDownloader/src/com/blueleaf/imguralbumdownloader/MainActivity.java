@@ -1,6 +1,8 @@
 package com.blueleaf.imguralbumdownloader;
 
 import java.net.UnknownHostException;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
@@ -33,17 +35,15 @@ import android.database.Cursor;
 import android.graphics.drawable.GradientDrawable;
 import android.support.v7.app.ActionBarActivity;
 import android.util.Log;
-import android.view.LayoutInflater;
+
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.RelativeLayout;
-import android.widget.TextView;
 import android.widget.Toast;
 import android.graphics.Color;
-
 import com.todddavies.components.progressbar.*;
 
 public class MainActivity extends ActionBarActivity  {
@@ -53,13 +53,17 @@ public class MainActivity extends ActionBarActivity  {
 	private String path ;
 	private String result = DownloadManager.ACTION_DOWNLOAD_COMPLETE;
 	
-	private String links[];
-	private String names[];
-	private long ids[];
+	private static List<String> links;
+	private static List<String> names;
+	private static List<Long> ids;
 	
 	DownloadManager manager ;
 	
+	//Holds the ID of the last file that downloads.
+	//Used by broadcast receiver to determine when the downloads have finished
 	private long enqueue;
+	
+	private boolean isAsyncTaskGoingOn ;
 	
 	//	error codes
 	public static final String NO_INTERNET = "NO_INTERNET";
@@ -71,42 +75,65 @@ public class MainActivity extends ActionBarActivity  {
 	private static final String DEFAULT_LOCATION = Environment.DIRECTORY_DOWNLOADS;
 	private static final String DLOC = "dloc";
 	private static final String NETWORK_PREF = "network_pref";
-	private static String album = "album" ;
-	public static final String RESULT = "result";
-	public static final String PATH = "path";
-	public static final String NOTIFICATION = "com.example.imguralbundownloader";
+	private static final String RESULT = "result";
+	private static final String PATH = "path";
+	private static final String NOTIFICATION = "com.example.imguralbundownloader";
+	private String album = "album" ;
 	
 	private static ProgressWheel wheel ;
 	RelativeLayout topLevelLayout ;
 	private View view;
 	
-	//Variables for showing sownload progress
-	private int mInterval = 10; // 5 seconds by default, can be changed later
+	//Variables for showing download progress
+	private int mInterval = 10; // 10 mili seconds
 	private Handler mHandler;
 	
 	
 	long totalSizeOfAllImages ;
 	
-	private Query q;
+	private Query query;
+	
+	// An empty immutable long array.
+	
+	public static final long[] EMPTY_LONG_ARRAY = new long[0];
 	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
+		
+		if(savedInstanceState != null)
+		{
+			if(savedInstanceState.getBoolean("isAsyncTaskGoingOn"))
+			{
+				startSpiningWheel();
+				disableInputs();
+			}
+		}
+		
+		
 		enqueue = 0 ;
-		q = new Query();
+		isAsyncTaskGoingOn = false;
+		query = new Query();
+		
+		links = new ArrayList<String>();
+		names = new ArrayList<String>();
+		ids = new ArrayList<Long>();
+		
+		
+		
+		//Initialize the layout
 		setContentView(R.layout.activity_main_working);
-		wheel = (ProgressWheel) findViewById(R.id.pw_spinner);
-		
-		wheel.setBarColor(Color.BLUE);
-		
 		view = findViewById(R.id.top_layout);
 		topLevelLayout = (RelativeLayout) view.findViewById(R.id.top_layout);
 		topLevelLayout.setVisibility(View.GONE);
+		getSupportActionBar().show();
 		
+		//Initialize the progress wheel
+		wheel = (ProgressWheel) findViewById(R.id.pw_spinner);
+		wheel.setBarColor(Color.BLUE);
+		wheel.setText("0%");
 		//initialize the download manager object
 		manager = (DownloadManager) getSystemService(Context.DOWNLOAD_SERVICE);
-		
-		getSupportActionBar().show();
 		
 		registerReceiver(receiver, new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE));
 		
@@ -117,10 +144,11 @@ public class MainActivity extends ActionBarActivity  {
 			@Override
 			public void onClick(View v) {
 				if(path == null){
-					Toast.makeText(v.getContext(),"No albums to show.",Toast.LENGTH_LONG).show();
+					SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
+					scanFile(sharedPref.getString(DLOC,DEFAULT_LOCATION));
 				}
-				else if(path.equals("path")){
-					Toast.makeText(v.getContext(),"Please wait for the download to finish...",Toast.LENGTH_LONG).show();
+				else if(wheel.isSpinning()){
+					Toast.makeText(v.getContext(),Errors.NO_ALBUMS_TO_SHOW,Toast.LENGTH_LONG).show();
 				}
 				else{
 					scanFile(path);
@@ -143,10 +171,10 @@ public class MainActivity extends ActionBarActivity  {
 			ex.printStackTrace();
 		}
 		
+		//Initialize the Handler Thread that handles progress bar updation thread
 		mHandler = new Handler();
 		
 	}
-
 	
 	//Creates the menu
 	@Override
@@ -177,19 +205,15 @@ public class MainActivity extends ActionBarActivity  {
 		EditText input = (EditText) findViewById(R.id.httpAddress);
 		String str = input.getText().toString();
 		Button submitBtn = (Button) findViewById(R.id.submitButton);
-		if(str.length() != 0 && str.contains("imgur"))
+		
+		if(str.contains("imgur.com/a/"))
 		{
-//			path = "path";
-			
-			Toast.makeText(this, "Downloading from "+str,Toast.LENGTH_LONG).show();
+			Toast.makeText(this, Errors.DOWNLOADING+str,Toast.LENGTH_SHORT).show();
 			GradientDrawable gradientDrawable = (GradientDrawable) input.getBackground();
 			gradientDrawable.setStroke(3, getResources().getColor(R.color.black));
 			startDownload(str);
-//			Intent downloadIntent = new Intent(this,downloadIntentService.class);
-//			downloadIntent.putExtra(downloadIntentService.URI, str);
 			input.setEnabled(false);
 			submitBtn.setEnabled(false);
-//			startService(downloadIntent);
 		}
 		else
 		{
@@ -203,14 +227,10 @@ public class MainActivity extends ActionBarActivity  {
 	
 	//Starts the async task that will further start the download
 	private void startDownload(String str) {			
-			
-//			registerReceiver(onComplete,new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE));
-			new HttpAsyncTask(this).execute(str);
-			
-			
+		startSpiningWheel();	
+		new HttpAsyncTask(this).execute(str);
 	}
 		
-	
 	//Formats the input string so that the API call can  be made
 	private String parseURI(String URI) {
 		String temp = "https://api.imgur.com/3/album/";
@@ -237,8 +257,7 @@ public class MainActivity extends ActionBarActivity  {
             	  if (DownloadManager.STATUS_SUCCESSFUL == c.getInt(columnIndex) && enqueue == downloadId) {
             		  	stopProbingDownloads();
             		    reEnableInputs();
-            		    wheel.stopSpinning();
-            		    topLevelLayout.setVisibility(View.INVISIBLE);
+            		    stopSpinningWheel();
 	      		        Toast.makeText(MainActivity.this, "Downloading Finished.",Toast.LENGTH_LONG).show();
             	  }
               }
@@ -247,8 +266,7 @@ public class MainActivity extends ActionBarActivity  {
 	      }
 		  else {
 			  reEnableInputs();
-			  wheel.stopSpinning();
-			  topLevelLayout.setVisibility(View.INVISIBLE);
+			  stopSpinningWheel();
 			  Toast.makeText(MainActivity.this, "Download failed.Please try again",
 		              Toast.LENGTH_LONG).show();
 		          
@@ -264,9 +282,9 @@ public class MainActivity extends ActionBarActivity  {
 	  
 	@Override
     protected void onResume() {
-	    
+		super.onResume();
 	    registerReceiver(receiver, new IntentFilter(result));
-	    if(enqueue != 0)
+	    if(enqueue != 0 )
 	    {
 	    	Query q = new Query();
 	    	q.setFilterById(enqueue);
@@ -279,16 +297,21 @@ public class MainActivity extends ActionBarActivity  {
 	    		{
 	    			if(wheel.isSpinning())
 	    			{
-	    				wheel.stopSpinning();
+	    				stopSpinningWheel();
 	    				
 	    			}
 	    			reEnableInputs();
-	    			topLevelLayout.setVisibility(View.INVISIBLE);
+	    			
 	    		}
 	    		
 	    	}
 	    }
-	    super.onResume();
+	    
+	    if(isAsyncTaskGoingOn)
+	    {
+			startSpiningWheel();
+	    }
+	    
 	}
   
 	
@@ -296,10 +319,34 @@ public class MainActivity extends ActionBarActivity  {
 	//When the activity pauses(loses focus) it de registers the broadcast receiver
     @Override
     protected void onPause() {
+    	super.onPause();
+    	unregisterReceiver(receiver);
+	    if(isAsyncTaskGoingOn)
+	    {
+	    	stopSpinningWheel();
+	    }
 	    
-	    unregisterReceiver(receiver);
-	    super.onPause();
 	  }
+    
+    @Override
+    public void onSaveInstanceState(Bundle savedInstanceState)
+    {
+    	super.onSaveInstanceState(savedInstanceState);
+    	savedInstanceState.putBoolean("isAsyncTaskGoingOn", isAsyncTaskGoingOn);
+    	EditText input = (EditText) findViewById(R.id.httpAddress);
+    	savedInstanceState.putString("link", input.getText().toString());
+    }
+    
+    @Override
+    public void onRestoreInstanceState(Bundle savedInstanceState)
+    {
+    	super.onRestoreInstanceState(savedInstanceState);
+    	if(savedInstanceState.getBoolean("isAsyncTaskGoingOn"))
+		{
+			startSpiningWheel();
+			disableInputs();
+		}
+    }
 	
     //Method that allows the OS to Scan Downloaded files.
     //Enables the functionality of View Albums button
@@ -317,13 +364,16 @@ public class MainActivity extends ActionBarActivity  {
                 });
     }
     
+    @SuppressWarnings("unused")
     
     //Core Method
     //First connects to Imgur API to get the links
     //Once it gets the links it gives it to the down load manager for downloading
+    
     private class HttpAsyncTask extends AsyncTask<String, Void, Void>{
 		
 		String error ;
+		
 		Context mContext ;
 		
 		public HttpAsyncTask(Context mContext){
@@ -331,9 +381,8 @@ public class MainActivity extends ActionBarActivity  {
 		}
 		@Override
 		protected void onPreExecute ()
-		{
-			topLevelLayout.setVisibility(View.VISIBLE);
-			wheel.spin();	
+		{	
+			isAsyncTaskGoingOn = true;
 		}
 
 		@Override
@@ -345,7 +394,6 @@ public class MainActivity extends ActionBarActivity  {
 				//in the header add the client id
 				
 				DOWNLOAD_URI = parseURI(DOWNLOAD_URI) ;
-				Log.d("DOWNLOAD_URI",DOWNLOAD_URI);
 				
 		        HttpClient httpClient = new DefaultHttpClient();
 		        HttpContext localContext = new BasicHttpContext();
@@ -359,13 +407,9 @@ public class MainActivity extends ActionBarActivity  {
 		        
 		        
 		        if(response_string != null){
-//		        	Log.d("JSON", response_string);
 					
 					//receive the json file DONE
 			        JSONObject json = new JSONObject(response_string);
-			     
-//			        Log.d("JSON", json.toString());
-
 					
 					//parse the json file DONE
 			        JSONObject jsonObject = json.getJSONObject("data");
@@ -376,19 +420,19 @@ public class MainActivity extends ActionBarActivity  {
 			        }
 			        else if(jsonStatus == SUCCESS){
 			        	JSONArray jsonArray = jsonObject.getJSONArray("images");
-				        links = new String[jsonArray.length()];
-				        names = new String[jsonArray.length()];
-				        ids = new long[jsonArray.length()];
-				        q.setFilterById(ids);
-				        totalSizeOfAllImages  = 0 ;
+			        	totalSizeOfAllImages  = 0 ;
+				        names.clear();
+				        links.clear();
+				        ids.clear();
+				        
+				        JSONObject jsonTemp; 
+				        
 				        for( int i=0;i<jsonArray.length();i++)
 				        {
-				        	JSONObject jsonTemp = jsonArray.getJSONObject(i);
-				        	names[i] = jsonTemp.getString("id");
-				        	links[i] = jsonTemp.getString("link");
+				        	jsonTemp = jsonArray.getJSONObject(i);
+				        	names.add(jsonTemp.getString("id"));
+				        	links.add(jsonTemp.getString("link"));
 				        	totalSizeOfAllImages  += jsonTemp.getLong("size") ;
-				        	Log.d("link",links[i]);
-
 				        }
 			        }
 			    }
@@ -411,16 +455,17 @@ public class MainActivity extends ActionBarActivity  {
 		@Override
 		protected void onPostExecute(Void v){
 			if(error == NO_INTERNET){
-				Toast.makeText(getApplicationContext(), "Please connect to Internet and try again", Toast.LENGTH_LONG).show();
+				Toast.makeText(getApplicationContext(), Errors.NO_INTERNET, Toast.LENGTH_LONG).show();
 				reEnableInputs();
-				topLevelLayout.setVisibility(View.INVISIBLE);
-				wheel.stopSpinning();
+				stopSpinningWheel();
+				isAsyncTaskGoingOn = false;
+				
 			}
 			else if(error == NO_ALBUM){
-				Toast.makeText(getApplicationContext(), "No Album was found at that URL", Toast.LENGTH_LONG).show();
+				Toast.makeText(getApplicationContext(), Errors.NO_ALBUM, Toast.LENGTH_LONG).show();
 				reEnableInputs();
-				topLevelLayout.setVisibility(View.INVISIBLE);
-				wheel.stopSpinning();
+				stopSpinningWheel();
+				isAsyncTaskGoingOn = false;
 			}
 			else{
 				
@@ -439,13 +484,13 @@ public class MainActivity extends ActionBarActivity  {
 					OnlyWifi = true;
 				}
 				
-				for(int i=0;i<links.length;i++)
+				for(int i=0;i<links.size();i++)
 		        {
-		        	myUri = Uri.parse(links[i]);
+		        	myUri = Uri.parse(links.get(i));
 		        	request = new Request(myUri);
-		        	path = names[i] + ".jpg";
-		        	request.setTitle(names[i]);
-		        	request.setDestinationInExternalPublicDir(pubDir,names[i]+".jpg");
+		        	path = names.get(i) + ".jpg";
+		        	request.setTitle(names.get(i));
+		        	request.setDestinationInExternalPublicDir(pubDir,names.get(i)+".jpg");
 		        	request.setVisibleInDownloadsUi(false);
 		        	if(OnlyWifi)
 		        	{
@@ -457,8 +502,11 @@ public class MainActivity extends ActionBarActivity  {
 		        	}
 		        	
 		        	enqueue = manager.enqueue(request);
-		        	ids[i] = enqueue;
+		        	ids.add(enqueue);
 		        }
+				long[] longIDs = toPrimitive(ids.toArray(new Long[ids.size()]));
+	        	query.setFilterById(longIDs);
+				isAsyncTaskGoingOn = false;
 				startProbingDownloads();
 			}
 			
@@ -482,17 +530,28 @@ public class MainActivity extends ActionBarActivity  {
 
 		@Override
 		protected Long doInBackground(Void... arg0) {
-			// TODO Auto-generated method stub
-			Cursor c = manager.query(q);
-			long bytesDownloaded = 0;
 			long progress = 0;
-			while(c.moveToNext())
-			{
-				int columnIndex = c.getColumnIndex(DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR);
-				bytesDownloaded += c.getLong(columnIndex);
+			Cursor c = null ;
+			try {
+				c = manager.query(query);
+				long bytesDownloaded = 0;
 				
-				progress = bytesDownloaded*100/totalSizeOfAllImages;
-//				wheel.setText(String.valueOf(progress)+"%");
+				while(c.moveToNext())
+				{
+					int columnIndex = c.getColumnIndex(DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR);
+					bytesDownloaded += c.getLong(columnIndex);
+					
+					progress = bytesDownloaded*100/totalSizeOfAllImages;
+				}
+				return progress;
+			} catch (Exception e) {
+				
+				e.printStackTrace();
+				
+			}
+			finally{
+				if( c != null && !c.isClosed() )
+			        c.close();
 			}
 			return progress;
 		}
@@ -522,5 +581,41 @@ public class MainActivity extends ActionBarActivity  {
 		Button submitBtn = (Button) findViewById(R.id.submitButton);
 		submitBtn.setEnabled(true);
 	}
-
+	
+    //Disables inputs 
+	private void disableInputs(){
+		EditText input = (EditText) findViewById(R.id.httpAddress);
+		input.setEnabled(false);
+		Button submitBtn = (Button) findViewById(R.id.submitButton);
+		submitBtn.setEnabled(false);
+	}
+	
+	//Helper method to start spinning wheel
+	private void startSpiningWheel()
+	{
+		wheel.spin();
+		topLevelLayout.setVisibility(View.VISIBLE);
+	}
+	
+	//Helper method to stop spinning wheel
+	private void stopSpinningWheel()
+	{
+		wheel.stopSpinning();
+		topLevelLayout.setVisibility(View.INVISIBLE);
+	}
+	
+	
+	//Converts an array of object Long to primitives handling 
+	public static long[] toPrimitive(final Long[] array) {
+        if (array == null) {
+            return null;
+        } else if (array.length == 0) {
+            return EMPTY_LONG_ARRAY;
+        }
+        final long[] result = new long[array.length];
+        for (int i = 0; i < array.length; i++) {
+        	result[i] = array[i].longValue();
+        }
+        return result;
+	}
 }	

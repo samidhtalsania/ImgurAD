@@ -10,6 +10,8 @@
 	
 	<string name="view">View Album</string>
 	<string name="select">Select</string>
+	
+	<string name="downloadingMessage">Downloading&#8230;</string>
 
 </resources>
  

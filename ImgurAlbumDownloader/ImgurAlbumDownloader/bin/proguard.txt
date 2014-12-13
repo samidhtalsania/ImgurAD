@@ -46,16 +46,16 @@
 # view res/layout/abc_search_view.xml #generated:85
 -keep class android.support.v7.widget.SearchView$SearchAutoComplete { <init>(...); }
 
-# view AndroidManifest.xml #generated:65
+# view AndroidManifest.xml #generated:67
 -keep class com.blueleaf.imguralbumdownloader.DirectoryPicker { <init>(...); }
 
 # view AndroidManifest.xml #generated:18
 -keep class com.blueleaf.imguralbumdownloader.MainActivity { <init>(...); }
 
-# view AndroidManifest.xml #generated:69
+# view AndroidManifest.xml #generated:71
 -keep class com.blueleaf.imguralbumdownloader.downloadIntentService { <init>(...); }
 
-# view AndroidManifest.xml #generated:56
+# view AndroidManifest.xml #generated:57
 -keep class com.blueleaf.imguralbumdownloader.settingsActivity { <init>(...); }
 
 # view res/layout/activity_main_working.xml #generated:87
