@@ -1,10 +1,20 @@
+commit 297b9aa444071aaa3b028010790fb1bd0b6e808d
+Author: samidh talsania <samidhtalsania@gmail.com>
+Date:   Sat Dec 13 16:31:33 2014 +0530
+
+    Fixed UI Spinning wheel related bugs. Changed the position of spinning wheel. Downloads now wont show up in the downloads app.
+
+commit 85c76d45bc9498289882286727ec736583c2ca5d
+Author: samidh talsania <samidhtalsania@gmail.com>
+Date:   Fri Dec 5 00:36:16 2014 +0530
+
+    Added percentae notification in UI. Added Download over wifi only reference. Downloads now dont show up in the downloads folder.
+
 commit 65847afce6a9c737d0bd352fd927ae5790c0faf0
 Author: samidh talsania <samidhtalsania@gmail.com>
 Date:   Mon Dec 1 00:17:53 2014 +0530
 
     Added 2 features.1)Added option to select your doenloads directory.2)Added progreessbar in Main UI screen when the download is goin on.Various other bug fixes
-
-
 
 commit 7180e44d2f79561a8a1467863f9ccd82fac42c1d
 Author: samidh talsania <samidhtalsania@gmail.com>
@@ -12,23 +22,17 @@ Date:   Sun Sep 28 00:53:47 2014 -0700
 
     compiled with proguard. Added proguard files for v1.2
 
-
-
 commit 562a8018eabd5ca952b3322bdc81a03a8733c43a
 Author: samidh talsania <samidhtalsania@gmail.com>
 Date:   Sun Sep 28 00:41:04 2014 -0700
 
     v1.0.1 added the feature that lets you open any imgur album downloader from anywhere based on intent filters
 
-
-
 commit 9cce061f6851f2ba8949d3891b4cd9f6ba0de187
 Author: samidh talsania <samidhtalsania@gmail.com>
 Date:   Sun Sep 28 00:22:00 2014 -0700
 
     Imgur album downloader version 1.0
-
-
 
 commit a520333b9641ccde4e33ab76bf2a065ad76ef818
 Author: samidh <samidhtalsania@gmail.com>

@@ -101,14 +101,7 @@ public class MainActivity extends ActionBarActivity  {
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		
-		if(savedInstanceState != null)
-		{
-			if(savedInstanceState.getBoolean("isAsyncTaskGoingOn"))
-			{
-				startSpiningWheel();
-				disableInputs();
-			}
-		}
+		
 		
 		
 		enqueue = 0 ;
@@ -131,11 +124,26 @@ public class MainActivity extends ActionBarActivity  {
 		//Initialize the progress wheel
 		wheel = (ProgressWheel) findViewById(R.id.pw_spinner);
 		wheel.setBarColor(Color.BLUE);
-		wheel.setText("0%");
+		
 		//initialize the download manager object
 		manager = (DownloadManager) getSystemService(Context.DOWNLOAD_SERVICE);
 		
 		registerReceiver(receiver, new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE));
+		
+		if(savedInstanceState != null)
+		{
+			if(savedInstanceState.getBoolean("isAsyncTaskGoingOn"))
+			{
+				startSpiningWheel();
+				disableInputs();
+			}
+			if(savedInstanceState.getString("link") != null)
+	    	{
+	    		EditText input = (EditText) findViewById(R.id.httpAddress);
+	    		input.setText(savedInstanceState.getString("link"));
+	    	}
+			
+		}
 		
 		Button viewBtn = (Button) findViewById(R.id.viewButton);
 		
@@ -227,7 +235,8 @@ public class MainActivity extends ActionBarActivity  {
 	
 	//Starts the async task that will further start the download
 	private void startDownload(String str) {			
-		startSpiningWheel();	
+		startSpiningWheel();
+		wheel.setText("0%");
 		new HttpAsyncTask(this).execute(str);
 	}
 		
@@ -261,8 +270,8 @@ public class MainActivity extends ActionBarActivity  {
 	      		        Toast.makeText(MainActivity.this, "Downloading Finished.",Toast.LENGTH_LONG).show();
             	  }
               }
-		    	
-//		        startScan();
+              if( c != null && !c.isClosed() )
+			        c.close();
 	      }
 		  else {
 			  reEnableInputs();
@@ -280,12 +289,14 @@ public class MainActivity extends ActionBarActivity  {
 	//keeps the progress wheel going on and keeps the inputs disabled. If the downloads have finished it re enables
 	//inputs and stops the spinning of the progress wheel.
 	  
+	
 	@Override
     protected void onResume() {
 		super.onResume();
 	    registerReceiver(receiver, new IntentFilter(result));
 	    if(enqueue != 0 )
 	    {
+	    	
 	    	Query q = new Query();
 	    	q.setFilterById(enqueue);
 	    	DownloadManager dm = (DownloadManager) this.getSystemService(Context.DOWNLOAD_SERVICE);
@@ -301,10 +312,16 @@ public class MainActivity extends ActionBarActivity  {
 	    				
 	    			}
 	    			reEnableInputs();
-	    			
 	    		}
-	    		
+	    		else
+	    		{
+	    			startSpiningWheel();
+	    			disableInputs();
+	    			startProbingDownloads();
+	    		}
 	    	}
+	    	if( c != null && !c.isClosed() )
+		        c.close();
 	    }
 	    
 	    if(isAsyncTaskGoingOn)
@@ -346,6 +363,11 @@ public class MainActivity extends ActionBarActivity  {
 			startSpiningWheel();
 			disableInputs();
 		}
+    	if(savedInstanceState.getString("link") != null)
+    	{
+    		EditText input = (EditText) findViewById(R.id.httpAddress);
+    		input.setText(savedInstanceState.getString("link"));
+    	}
     }
 	
     //Method that allows the OS to Scan Downloaded files.
@@ -434,6 +456,46 @@ public class MainActivity extends ActionBarActivity  {
 				        	links.add(jsonTemp.getString("link"));
 				        	totalSizeOfAllImages  += jsonTemp.getLong("size") ;
 				        }
+				        
+				    	
+						Uri myUri ;
+						Request request ;
+						SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
+						downloadLocation = sharedPref.getString(DLOC,DEFAULT_LOCATION);
+						String pubDir = downloadLocation+"/"+album ;
+						String formatStr = Environment.getExternalStorageDirectory().getAbsolutePath() ;
+						pubDir = pubDir.replace(formatStr, "");
+						
+						Log.d("loc",pubDir);
+						boolean OnlyWifi = false;
+						if(sharedPref.getBoolean(NETWORK_PREF, true))
+						{
+							OnlyWifi = true;
+						}
+						
+						for(int i=0;i<links.size();i++)
+				        {
+				        	myUri = Uri.parse(links.get(i));
+				        	request = new Request(myUri);
+				        	path = names.get(i) + ".jpg";
+				        	request.setTitle(names.get(i));
+				        	request.setDestinationInExternalPublicDir(pubDir,names.get(i)+".jpg");
+				        	request.setVisibleInDownloadsUi(false);
+				        	if(OnlyWifi)
+				        	{
+				        		request.setAllowedNetworkTypes(Request.NETWORK_WIFI);
+				        	}
+				        	else
+				        	{
+				        		request.setAllowedNetworkTypes(Request.NETWORK_WIFI | Request.NETWORK_MOBILE);
+				        	}
+				        	
+				        	enqueue = manager.enqueue(request);
+				        	ids.add(enqueue);
+				        }
+						long[] longIDs = toPrimitive(ids.toArray(new Long[ids.size()]));
+			        	query.setFilterById(longIDs);
+						
 			        }
 			    }
 		        else{
@@ -454,6 +516,7 @@ public class MainActivity extends ActionBarActivity  {
 		
 		@Override
 		protected void onPostExecute(Void v){
+			isAsyncTaskGoingOn = false;
 			if(error == NO_INTERNET){
 				Toast.makeText(getApplicationContext(), Errors.NO_INTERNET, Toast.LENGTH_LONG).show();
 				reEnableInputs();
@@ -468,48 +531,8 @@ public class MainActivity extends ActionBarActivity  {
 				isAsyncTaskGoingOn = false;
 			}
 			else{
-				
-				Uri myUri ;
-				Request request ;
-				SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
-				downloadLocation = sharedPref.getString(DLOC,DEFAULT_LOCATION);
-				String pubDir = downloadLocation+"/"+album ;
-				String formatStr = Environment.getExternalStorageDirectory().getAbsolutePath() ;
-				pubDir = pubDir.replace(formatStr, "");
-				
-				Log.d("loc",pubDir);
-				boolean OnlyWifi = false;
-				if(sharedPref.getBoolean(NETWORK_PREF, true))
-				{
-					OnlyWifi = true;
-				}
-				
-				for(int i=0;i<links.size();i++)
-		        {
-		        	myUri = Uri.parse(links.get(i));
-		        	request = new Request(myUri);
-		        	path = names.get(i) + ".jpg";
-		        	request.setTitle(names.get(i));
-		        	request.setDestinationInExternalPublicDir(pubDir,names.get(i)+".jpg");
-		        	request.setVisibleInDownloadsUi(false);
-		        	if(OnlyWifi)
-		        	{
-		        		request.setAllowedNetworkTypes(Request.NETWORK_WIFI);
-		        	}
-		        	else
-		        	{
-		        		request.setAllowedNetworkTypes(Request.NETWORK_WIFI | Request.NETWORK_MOBILE);
-		        	}
-		        	
-		        	enqueue = manager.enqueue(request);
-		        	ids.add(enqueue);
-		        }
-				long[] longIDs = toPrimitive(ids.toArray(new Long[ids.size()]));
-	        	query.setFilterById(longIDs);
-				isAsyncTaskGoingOn = false;
 				startProbingDownloads();
 			}
-			
 		}
 	}
 	
@@ -554,6 +577,7 @@ public class MainActivity extends ActionBarActivity  {
 			        c.close();
 			}
 			return progress;
+			
 		}
 		
 		@Override
@@ -594,6 +618,7 @@ public class MainActivity extends ActionBarActivity  {
 	private void startSpiningWheel()
 	{
 		wheel.spin();
+		topLevelLayout = (RelativeLayout) view.findViewById(R.id.top_layout);
 		topLevelLayout.setVisibility(View.VISIBLE);
 	}
 	
@@ -601,6 +626,7 @@ public class MainActivity extends ActionBarActivity  {
 	private void stopSpinningWheel()
 	{
 		wheel.stopSpinning();
+		topLevelLayout = (RelativeLayout) view.findViewById(R.id.top_layout);
 		topLevelLayout.setVisibility(View.INVISIBLE);
 	}
 	
